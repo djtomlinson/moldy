@@ -250,7 +250,6 @@ int main(){
         std::istringstream in {params};
         in >> maxTime >> timestep >> viscosity >> temperature >> overlapStrength;
     }
-    std::cout << maxTime << ' ' << temperature;
 
     std::ofstream beadOut {"beadOutput.txt"};
     if (!beadOut)
