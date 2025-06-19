@@ -9,3 +9,5 @@ The aim is to provide a user friendly front-end utilising python scripting whils
 Usage examples included in moldy.py
 
 Example outputs included in ./graphicsOutput
+
+compiled with c++20
