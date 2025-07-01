@@ -4,10 +4,13 @@
 #include <array>
 #include <random>
 #include <cmath>
+
+#include "typeAliases.h"
 #include "constants.h"
 #include "containers.h"
+#include "physicsObjects.h"
 
-
+/*
 using vec3 = std::array<double,3>;
 
 class Bead
@@ -151,7 +154,7 @@ public:
     }
 
 };
-
+*/
 //force functions START
 
 vec3 stokesDrag(vec3 velocity, double radius, double viscosity) //pass velocity by referen
