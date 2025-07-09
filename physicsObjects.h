@@ -86,7 +86,27 @@ public:
             return {0,0,0};
         }
     }
-    //vec3 lennardJones()
+    vec3 lennardJonesForce(Bead& otherBead, double repulsionStrength)
+    {
+        double beadSeparation {sqrt((m_position[0]-otherBead.m_position[0])
+                                   *(m_position[0]-otherBead.m_position[0])
+                                   +(m_position[1]-otherBead.m_position[1])
+                                   *(m_position[1]-otherBead.m_position[1])
+                                   +(m_position[2]-otherBead.m_position[2])
+                                   *(m_position[2]-otherBead.m_position[2]))};
+        double invSeparation {(m_radius+otherBead.m_radius)/beadSeparation}; //includes numer.
+        double invSeparation5 {invSeparation*invSeparation*invSeparation*invSeparation
+                              *invSeparation};
+        double invSeparation11 {invSeparation5*invSeparation5*invSeparation};
+        
+        double forceStrength {4*repulsionStrength*(-12*invSeparation11+6*invSeparation5)}; //LJ strength
+        
+        invSeparation = 1/beadSeparation; //does not include numer.
+
+        return {-forceStrength*(m_position[0]-otherBead.m_position[0])*invSeparation,
+                -forceStrength*(m_position[1]-otherBead.m_position[1])*invSeparation,
+                -forceStrength*(m_position[2]-otherBead.m_position[2])*invSeparation};        
+    }
 
     //Friends
     friend class Spring;
