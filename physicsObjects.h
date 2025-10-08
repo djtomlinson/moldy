@@ -2,6 +2,7 @@
 #define PHYSOBJ_H
 
 //Requires typeAliases.h,<cmath>,<iostream>
+#include <string>
 
 class Bead
 {
@@ -12,15 +13,18 @@ private:
     double m_mass {};
     double m_radius {};
     double m_charge {};
+    int m_species {};
     static inline int s_idGenerator {};
 public:
     //Constructor (currently constructs too large bead)
-    Bead(vec3 position={0,0,0}, vec3 velocity={0,0,0}, double mass=1.0, double radius=1.0, double charge=0.0)
+    Bead(vec3 position={0,0,0}, vec3 velocity={0,0,0}, double mass=1.0, double radius=1.0, double charge=0.0,
+        int species = -1)
         : m_position {position}
         , m_velocity {velocity}
         , m_mass {mass}
         , m_radius {radius}
         , m_charge {charge}
+        , m_species {species}
         , m_id {s_idGenerator++}
         {
             //std::cout << "ID: " << m_id << '\n';
@@ -42,6 +46,7 @@ public:
     double getMass() const { return m_mass; }
     double getRadius() const { return m_radius; }
     double getCharge() const { return m_charge; }
+    int getSpecies() const { return m_species; }
 
     //Setters
     void setPosition(vec3& position){ m_position = position; }
@@ -49,6 +54,7 @@ public:
     void setMass(double mass){ m_mass = mass; }
     void setRadius(double radius){ m_radius = radius; }
     void setCharge(double charge){ m_charge = charge; }
+    void setSpecies(int species){ m_species = species;}
 
     //Physics steps
     void addVelocity(vec3 velocityChange)

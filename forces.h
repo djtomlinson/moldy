@@ -24,6 +24,29 @@ vec3 coulombForce(Bead& bead1, Bead& bead2)
     return {coeff*(p1[0]-p2[0]),coeff*(p1[1]-p2[1]),coeff*(p1[2]-p2[2])};
 }
 
+vec3 interactionForce(Bead& bead1, Bead& bead2, auto interactionMatrix)
+{
+    int s1 {bead1.getSpecies()};
+    int s2 {bead2.getSpecies()};
+    double interactionStrength {interactionMatrix[s1][s2]};
+    double coeff {interactionStrength};
+    vec3 p1 {bead1.getPosition()};
+    vec3 p2 {bead2.getPosition()};
+
+    double beadSeparation {sqrt((p1[0]-p2[0])*(p1[0]-p2[0])
+                               +(p1[1]-p2[1])*(p1[1]-p2[1])
+                               +(p1[2]-p2[2])*(p1[2]-p2[2]))};
+    if (beadSeparation<2.0*bead1.getRadius())
+    {
+        return {coeff*(p1[0]-p2[0]),coeff*(p1[1]-p2[1]),coeff*(p1[2]-p2[2])};
+    }
+    else
+    {
+        return {0.0, 0.0, 0.0};
+    }
+
+}
+
 vec3 forceToVelocityChange(vec3 force, double mass, double timestep)
 {
     /* F = ma

@@ -2,8 +2,10 @@
 #include <fstream>
 #include <sstream>
 #include <array>
+#include <vector>
 #include <random>
 #include <cmath>
+#include <string>
 
 #include "typeAliases.h"
 #include "constants.h"
@@ -39,6 +41,46 @@ int main(){
         in >> maxTime >> timestep >> viscosity >> temperature >> overlapStrength;
     }
 
+    //interaction matrix input happens here
+    std::ifstream interactionMatrixFile {"interactionMatrix.txt"};
+    std::ifstream interactionMatrixFileCopy {"interactionMatrix.txt"};
+
+    std::string matrixRows {};
+    if (!interactionMatrixFile)
+    {
+        return 1;
+        std::cout << "Error reading interaction matrix\n";
+    }
+    int numberRows {};
+    while(std::getline(interactionMatrixFile,matrixRows)) { ++numberRows; }
+    
+    mat<double> interactionMatrix (numberRows, std::vector<double>(numberRows));
+
+    int rowNumber {};
+    while(std::getline(interactionMatrixFileCopy,matrixRows))
+    {
+        std::istringstream in {matrixRows};
+        if (rowNumber!=0) //header with species names is row 0
+        {
+            
+            for (int i=0; i<numberRows-1; i++)
+            {
+                in >> interactionMatrix[rowNumber-1][i]; //these indices may need swapping
+                std::cout << interactionMatrix[rowNumber-1][i] << " currently writing: "
+                          << "row " << rowNumber-1 << " column " << i << '\n';
+            }
+        }
+        else
+        {
+            std::string in1;
+            std::string in2;
+            in >> in1 >> in2;
+            std::cout << in1 << ' ' << in2 << '\n';
+        }
+        ++rowNumber;
+    }
+
+    //check/make output files
     std::ofstream beadOut {"beadOutput.txt"};
     if (!beadOut)
     {
