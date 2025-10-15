@@ -12,6 +12,7 @@
 #include "containers.h"
 #include "physicsObjects.h"
 #include "forces.h"
+#include "actionManager.h"
 
 void outputBeadPosition(Bead& bead, double timestep)
 {
@@ -25,10 +26,11 @@ int main(){
     double timestep {};
     double viscosity {};
     double temperature {};
-    double overlapStrength {};
+    double overlapStrength {};//can be calculated 3*pi*eta*radius/2*timestep
     
     double currentTime {0.0};
     
+    //simulation parameters input here
     std::ifstream simParams {"simulationParameters.txt"};
     std::string params {};
     if (!simParams)
@@ -40,7 +42,14 @@ int main(){
         std::istringstream in {params};
         in >> maxTime >> timestep >> viscosity >> temperature >> overlapStrength;
     }
-
+    
+    //simulation script loaded here
+    std::ifstream simScript {"simulationScript.txt"};
+    if (!simScript)
+    {
+        return 1;
+    }
+    
     //interaction matrix input happens here
     std::ifstream interactionMatrixFile {"interactionMatrix.txt"};
     std::ifstream interactionMatrixFileCopy {"interactionMatrix.txt"};
@@ -119,6 +128,7 @@ int main(){
         double mass {};
         double radius {};
         double charge {};
+        int species {};
         in >> position[0] >> position[1] >> position[2]
            >> velocity[0] >> velocity[1] >> velocity[2]
            >> mass >> radius >> charge;
@@ -127,6 +137,7 @@ int main(){
         beadArray[lineNo].setMass(mass);
         beadArray[lineNo].setRadius(radius);
         beadArray[lineNo].setCharge(charge);
+        beadArray[lineNo].setSpecies(species);
         ++lineNo;
     }
 
@@ -163,13 +174,15 @@ int main(){
                        << ' ' << "Y"
                        << ' ' << "Z" 
                        << ' ' << "ID" 
-                       << ' ' << "Radius" << '\n';
+                       << ' ' << "Radius" 
+                       << ' ' << "Species" << '\n';
     
     springOut << "Time"  << ' ' << "Start" 
                          << ' ' << "End"
                          << ' ' << "Force" 
                          << ' ' << "ID" << '\n'; 
-        
+    
+
     while(currentTime <= maxTime)
     {
                
@@ -224,7 +237,8 @@ int main(){
                                    << ' ' << outputPosition[1]
                                    << ' ' << outputPosition[2] 
                                    << ' ' << beadArray[j].getId() 
-                                   << ' ' << beadRadius << '\n';
+                                   << ' ' << beadRadius 
+                                   << ' ' << beadArray[j].getSpecies() << '\n';
 
             for (int k=0; k<beadArray.getLength(); ++k)
             {
@@ -250,7 +264,8 @@ int main(){
 
             beadArray[j].updatePosition(timestep);
         }
-
+       
+       checkActions(simScript, beadArray, springArray);
        currentTime += timestep;
     }
     return 0;

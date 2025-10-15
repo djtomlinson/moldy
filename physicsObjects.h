@@ -8,7 +8,7 @@ class Bead
 {
 private:
     int m_id {};
-    vec3 m_position {};
+    vec3 m_position {}; //previous position to be added for verlet algorithm
     vec3 m_velocity {};
     double m_mass {};
     double m_radius {};
@@ -27,7 +27,7 @@ public:
         , m_species {species}
         , m_id {s_idGenerator++}
         {
-            //std::cout << "ID: " << m_id << '\n';
+            //std::cout << "bead ID: " << m_id << '\n';
         }
     
     void print()
@@ -49,12 +49,14 @@ public:
     int getSpecies() const { return m_species; }
 
     //Setters
-    void setPosition(vec3& position){ m_position = position; }
+    void setPosition(vec3& position){ m_position = position; }//set previous position for verlet algorithm
     void setVelocity(vec3& velocity){ m_velocity = velocity; }
     void setMass(double mass){ m_mass = mass; }
     void setRadius(double radius){ m_radius = radius; }
     void setCharge(double charge){ m_charge = charge; }
     void setSpecies(int species){ m_species = species;}
+
+    void idCopied(int length) { s_idGenerator -= length; } //when containers are copied id is indexed again, corrects
 
     //Physics steps
     void addVelocity(vec3 velocityChange)
@@ -126,7 +128,7 @@ private:
     int m_end {};
     double m_naturalLength {};
     double m_springConstant {};
-    static inline int s_idGenerator {};
+    static inline int s_idGenerator_spring {};
 public:
     //Constructor
     Spring(int start=0, int end=1, double naturalLength=1.0, double springConstant=1.0)
@@ -134,9 +136,9 @@ public:
         , m_end {end}
         , m_naturalLength {naturalLength}
         , m_springConstant {springConstant}
-        , m_id {s_idGenerator++}
+        , m_id {s_idGenerator_spring++}
         {
-            //std::cout << "ID: " << m_id << '\n';
+            //std::cout << "spring ID: " << m_id << '\n';
         }
 
     //Getters
@@ -151,6 +153,8 @@ public:
     void setEnd(int end) { m_end = end; }
     void setNaturalLength(double naturalLength) { m_naturalLength = naturalLength; }
     void setSpringConstant(double springConstant) { m_springConstant = springConstant; }
+    
+    void idCopied(int length) { s_idGenerator_spring -= length; }
 
     //Physics steps
     vec3 springForce(Bead& beadStart, Bead& beadEnd)
