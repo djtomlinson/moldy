@@ -36,8 +36,10 @@ vec3 interactionForce(Bead& bead1, Bead& bead2, auto interactionMatrix)
     double beadSeparation {sqrt((p1[0]-p2[0])*(p1[0]-p2[0])
                                +(p1[1]-p2[1])*(p1[1]-p2[1])
                                +(p1[2]-p2[2])*(p1[2]-p2[2]))};
-    if (beadSeparation<2.0*bead1.getRadius())
+    if (beadSeparation>(bead1.getRadius()+bead2.getRadius()))
     {
+        double invBeadSepSq {(1/beadSeparation)*(1/beadSeparation)};
+        coeff *= invBeadSepSq;
         return {coeff*(p1[0]-p2[0]),coeff*(p1[1]-p2[1]),coeff*(p1[2]-p2[2])};
     }
     else
@@ -47,6 +49,34 @@ vec3 interactionForce(Bead& bead1, Bead& bead2, auto interactionMatrix)
 
 }
 
+vec3 interactionForceLJ(Bead& bead1, Bead& bead2, auto interactionMatrix)
+{
+    int s1 {bead1.getSpecies()};
+    int s2 {bead2.getSpecies()};
+    double epsilon {interactionMatrix[s1][s2]};
+    double sigma {(bead1.getRadius()+bead2.getRadius())};
+    vec3 p1 {bead1.getPosition()};
+    vec3 p2 {bead2.getPosition()};
+
+    double beadSeparation {sqrt((p1[0]-p2[0])*(p1[0]-p2[0])
+                               +(p1[1]-p2[1])*(p1[1]-p2[1])
+                               +(p1[2]-p2[2])*(p1[2]-p2[2]))};
+    double invBeadSep2 {(1/beadSeparation)*(1/beadSeparation)};
+    double invBeadSep6 {invBeadSep2*invBeadSep2*invBeadSep2};
+    double invBeadSep12 {invBeadSep6*invBeadSep6};
+
+    double sigma6 {sigma*sigma*sigma*sigma*sigma*sigma};
+    double coeff {48*epsilon*sigma6};
+
+    double LJ {coeff*invBeadSep2*(sigma6*invBeadSep12-0.5*invBeadSep6)};
+    double LJsign {LJ>=0.0 ? +1.0 : -1.0};
+    LJ = LJsign*std::min(abs(LJ),1e-2); //hate this    
+    if (beadSeparation > sigma){// && abs(LJ)<1e-4){
+//    std::cout << "LJ strength " << LJ << '\n';
+    return {LJ*(p1[0]-p2[0]), LJ*(p1[1]-p2[1]), LJ*(p1[2]-p2[2])};//    }
+    }
+    else { return {0,0,0}; }
+}
 vec3 forceToVelocityChange(vec3 force, double mass, double timestep)
 {
     /* F = ma
@@ -59,13 +89,13 @@ vec3 forceToVelocityChange(vec3 force, double mass, double timestep)
             force[2]*invMass*timestep};
 }
 
-vec3 generateThermalNoise(double mass, double radius, double temperature, double viscosity)
+vec3 generateThermalNoise(double mass, double radius, double temperature, double viscosity, double timestep)
 {
     constexpr double k_B2 {2*k::k_B};
     double stokesCoeff {6*k::pi*radius*viscosity};
     
     //generate gaussian using Box-Muller
-    static std::mt19937 rng(std::random_device{}()); 
+    //static std::mt19937 rng(std::random_device{}()); 
     static std::uniform_real_distribution<> runif(0.0, 1.0);
     double uniform1;
     double uniform3;
@@ -88,7 +118,8 @@ vec3 generateThermalNoise(double mass, double radius, double temperature, double
     double normal3 {R34*cos(pi2*uniform4)};
     //4th result not calculated as we only need 3
     
-    double magnitude {sqrt(stokesCoeff*k_B2*temperature)};
+    double magnitude {sqrt((k_B2*temperature*stokesCoeff)/timestep)};
+    //std::cout << magnitude << '\n'; //Computer simulation of liquids pg383-384
     return {magnitude*normal1,
             magnitude*normal2,
             magnitude*normal3};

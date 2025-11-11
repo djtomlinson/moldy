@@ -11,14 +11,9 @@
 #include "constants.h"
 #include "containers.h"
 #include "physicsObjects.h"
+#include "sharedFunctions.h" //includes mersenne twister seeding, CoM, StDev
 #include "forces.h"
 #include "actionManager.h"
-
-void outputBeadPosition(Bead& bead, double timestep)
-{
-    vec3 position {bead.getPosition()};
-    std::cout << '(' << position[0] << ',' << position[1] << ',' << position[2] << ")\n";
-}
 
 int main(){
 
@@ -26,9 +21,11 @@ int main(){
     double timestep {};
     double viscosity {};
     double temperature {};
-    double overlapStrength {};//can be calculated 3*pi*eta*radius/2*timestep
+    double overlapStrength {};//can be calculated 3*pi*eta*radius/2*timestep for harmonic
     
     double currentTime {0.0};
+    
+    vec3 zeroForce {0,0,0}; //used to reset forces
     
     //simulation parameters input here
     std::ifstream simParams {"simulationParameters.txt"};
@@ -100,7 +97,7 @@ int main(){
     {
         return 1;
     }
-    //copy output to outputBackup folder, numerate
+    //to do: copy output to outputBackup folder, numerate
 
 
     //some sort of construction loop that loads from file written by python program
@@ -131,13 +128,14 @@ int main(){
         int species {};
         in >> position[0] >> position[1] >> position[2]
            >> velocity[0] >> velocity[1] >> velocity[2]
-           >> mass >> radius >> charge;
+           >> mass >> radius >> charge >> species;
         beadArray[lineNo].setPosition(position);
         beadArray[lineNo].setVelocity(velocity);
         beadArray[lineNo].setMass(mass);
         beadArray[lineNo].setRadius(radius);
         beadArray[lineNo].setCharge(charge);
         beadArray[lineNo].setSpecies(species);
+        //beadArray[lineNo].print();
         ++lineNo;
     }
 
@@ -185,53 +183,52 @@ int main(){
 
     while(currentTime <= maxTime)
     {
+        /* CHECK SCRIPT, DO ACTIONS */
+        checkActions(simScript, beadArray, springArray);
                
+        /* DECLARE VARIABLES */
         vec3 overlapForce {};
-        vec3 overlapVelocity {};
         vec3 chargeForce {};
-        vec3 chargeVelocity {};
-        
+        vec3 speciesForce {};
         vec3 springForce {};
-        vec3 springVelocity {};
         int startInd {};
         int endInd {};
 
         vec3 noiseForce {};
-        vec3 noiseVelocity {};
 
         vec3 currentVelocity {};
         vec3 dragForce {};
-        vec3 dragVelocity {};
 
         vec3 outputPosition {};
-
+        
+        /* SPRING LOOP */
         for (int i=0; i<springArray.getLength(); ++i)
         {   
+            /* SPRING FORCE */
             startInd = springArray[i].getStart();
             endInd = springArray[i].getEnd();
-            double beadMassStart = beadArray[startInd].getMass();
-            double beadMassEndRatio = beadMassStart/beadArray[endInd].getMass();
             springForce = springArray[i].springForce(beadArray[startInd],
                                                      beadArray[endInd]);
-            springVelocity = forceToVelocityChange(springForce,beadMassStart,timestep);
-            beadArray[startInd].addVelocity(springVelocity);
-            beadArray[endInd].addVelocity({-beadMassEndRatio * springVelocity[0],
-                                           -beadMassEndRatio * springVelocity[1],
-                                           -beadMassEndRatio * springVelocity[2]});
+            beadArray[startInd].addForce(springForce);
+            beadArray[endInd].addForce({-springForce[0],-springForce[1],-springForce[2]});
+            
+            /* WRITING TO SPRING OUTPUT */
             springOut << currentTime  << ' ' << startInd 
                                       << ' ' << endInd
                                       << ' ' << sqrt(springForce[0]*springForce[0]
                                                     +springForce[1]*springForce[1]
                                                     +springForce[2]*springForce[2])
                                       << ' ' << springArray[i].getId() << '\n'; 
-     
         }
-
+        
+        /* BEAD LOOP */
         for (int j=0; j<beadArray.getLength(); ++j)
         {
+            /* GET BEAD PARAMETERS */
             double beadMass = beadArray[j].getMass();
             double beadRadius = beadArray[j].getRadius();
-            currentVelocity = beadArray[j].getVelocity();
+            
+            /* WRITING TO BEAD OUTPUT */
             outputPosition = beadArray[j].getPosition();
             beadOut << currentTime << ' ' << outputPosition[0] 
                                    << ' ' << outputPosition[1]
@@ -240,32 +237,48 @@ int main(){
                                    << ' ' << beadRadius 
                                    << ' ' << beadArray[j].getSpecies() << '\n';
 
+            /* EVALUATE FORCES FROM OTHER BEADS */
             for (int k=0; k<beadArray.getLength(); ++k)
             {
                 if (j != k)
                 {
+                    /* OVERLAP FORCE: constant force separates beads if overlapping. */
                     overlapForce = beadArray[j].binaryOverlapForce(beadArray[k],
                                                                    overlapStrength);
-                    overlapVelocity = forceToVelocityChange(overlapForce,beadMass,timestep);
-                    beadArray[j].addVelocity(overlapVelocity);
-                    chargeForce = coulombForce(beadArray[j],beadArray[k]);
-                    chargeVelocity = forceToVelocityChange(chargeForce,beadMass,timestep);
-                    beadArray[j].addVelocity(chargeVelocity);
+                    beadArray[j].addForce(overlapForce);
+
+                    /* CHARGE FORCE: explicitly Coulomb (1/r^2) forces evaluated. */
+//                    chargeForce = coulombForce(beadArray[j],beadArray[k]);
+//                    chargeVelocity = forceToVelocityChange(chargeForce,beadMass,timestep);
+//                    beadArray[j].addVelocity(chargeVelocity);
+                    
+                    /* SPECIES FORCE: Lennard-Jones interaction, mediated by interaction matrix. */
+                    speciesForce = interactionForceLJ(beadArray[j],beadArray[k],interactionMatrix);
+                    beadArray[j].addForce(speciesForce);
                 }
             }
             
-            noiseForce = generateThermalNoise(beadMass,beadRadius,temperature,viscosity);
-            noiseVelocity = forceToVelocityChange(noiseForce,beadMass,timestep);
-            beadArray[j].addVelocity(noiseVelocity);
-
+            /* NOISE FORCE: thermal force, Brownian motion. */
+            noiseForce = generateThermalNoise(beadMass,beadRadius,temperature,viscosity,timestep);
+            beadArray[j].addForce(noiseForce);
+           
+            /* DRAG FORCE: Stokes drag. */
+            currentVelocity = beadArray[j].estimateVelocity(timestep); 
             dragForce = stokesDrag(currentVelocity,beadRadius,viscosity);
-            dragVelocity = forceToVelocityChange(dragForce,beadMass,timestep);
-            beadArray[j].addVelocity(dragVelocity);
+            beadArray[j].addForce(dragForce);
+            
+            /* UPDATE BEAD POSITION */
+            beadArray[j].updatePositionVerlet(timestep);
+            beadArray[j].setForce(zeroForce);
+       }
 
-            beadArray[j].updatePosition(timestep);
-        }
-       
-       checkActions(simScript, beadArray, springArray);
+       vec3 stdev {0,0,0};
+       vec3 mean {0,0,0};
+//       std::cout << mean[0] << ' ' << stdev[0] << '\n';
+       getStDevAndCoM(beadArray,stdev,mean);
+//       std::cout << mean[0] << ' ' << stdev[0] << '\n';
+
+
        currentTime += timestep;
     }
     return 0;
