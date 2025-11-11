@@ -71,7 +71,7 @@ void addMoleculeNearCoM(Array<Bead>& beadArr, Array<Spring>& springArr,
 
     double theta = thetaGen(rng);
     double phi = phiGen(rng);
-    std::cout << "theta=" << theta << " phi=" << phi << '\n';
+//    std::cout << "theta=" << theta << " phi=" << phi << '\n';
     double xAdd {safeDistance[0]*sin(theta)*cos(phi)+beadCoM[0]};
     double yAdd {safeDistance[1]*sin(theta)*sin(phi)+beadCoM[1]};
     double zAdd {safeDistance[2]*cos(theta)+beadCoM[2]};
@@ -93,7 +93,7 @@ void addMoleculeNearCoM(Array<Bead>& beadArr, Array<Spring>& springArr,
         beadArr.extend1();
 
         position = {position[0]+xAdd,position[1]+yAdd,position[2]+zAdd};
-
+        //std::cout << "Added bead of species: " << species << '\n';
         int arrLength {beadArr.getLength()};
         beadArr[arrLength-1].setPosition(position);
         beadArr[arrLength-1].setVelocity(velocity);

@@ -577,12 +577,15 @@ def createBlankScript(dt, tMax):
         t += dt
     return scriptArray
 
-def addEvent(script, ind, action, number, info1, info2):
+def addEvent(script, timeInfo, action, number, info1, info2):
+    ind = int(timeInfo[0]/timeInfo[1])
+    time = timeInfo[0]
+    assert (timeInfo[2]>=time), "Event time is out of simulation bounds."
     script[ind] = ("%e %s %d %s %s" % (time, action, number, info1, info2))
     return script
 
 def setSimulationScript(script):
-    with open("./testWrites/simulationScript.txt", 'w') as f:
+    with open("./simulationScript.txt", 'w') as f:
         for line in script:
             f.write(line+'\n')
             
@@ -623,7 +626,7 @@ def symmetriseInteractionMatrix(interactionMatrix):
 def setInteractionMatrix(interactionMatrix):
     interMatArr = interactionMatrix[0]
     species = interactionMatrix[1]
-    with open("./testWrites/interactionMatrixARR.txt", 'w') as f:
+    with open("./interactionMatrixARR.txt", 'w') as f:
         f.write(' '.join(species))
         f.write('\n')
         for row in interMatArr:
@@ -663,8 +666,6 @@ def directoryToVideo(directoryPath,videoName):
     cv2.destroyAllWindows()
     video.release()
  
-    
-
 def outputToVTF(species, beadOutput="beadOutput.txt", springOutput="springOutput.txt", noFrames=200,
                 launchVMD=False):
     fileLines = []
@@ -758,17 +759,17 @@ def outputToVTF(species, beadOutput="beadOutput.txt", springOutput="springOutput
             boxLines.append(str(Xbounds[0])+' '+str(Ybounds[1])+' '+str(Zbounds[1])+'\n')
         f += 1
                 
-    with open("./testWrites/molecule_output.vtf", 'w') as f:
+    with open("./graphicsOutput/vmdFiles/molecule_output.vtf", 'w') as f:
         for l in fileLines:
             f.write(l)
             
     
-    with open("./testWrites/boundingBox.vtf", 'w') as f:
+    with open("./graphicsOutput/vmdFiles/boundingBox.vtf", 'w') as f:
         for l in boxLines:
             f.write(l)
     
-    boundingBoxLoc = os.path.realpath("./testWrites/boundingBox.vtf")
-    moleculeLoc = os.path.realpath("./testWrites/molecule_output.vtf")
+    boundingBoxLoc = os.path.realpath("./graphicsOutput/vmdFiles/boundingBox.vtf")
+    moleculeLoc = os.path.realpath("./graphicsOutput/vmdFiles/molecule_output.vtf")
     #generate tcl script
     tclLines = []
     tclLines.append("display resetview\n")
@@ -795,14 +796,14 @@ def outputToVTF(species, beadOutput="beadOutput.txt", springOutput="springOutput
     tclLines.append("rotate x by 45\n")
     tclLines.append("wait 18000") #required to stop it closing instantly
     
-    with open("./testWrites/moldyOutputSetup.tcl", 'w') as f:
+    with open("./graphicsOutput/vmdFiles/moldyOutputSetup.tcl", 'w') as f:
         for l in tclLines:
             f.write(l)
             
     if launchVMD:
         assert(len(VMD_PATH)!=0), "VMD_PATH has length zero: Make sure VMD_PATH points to the VMD executable."
         import subprocess
-        molpath = os.path.realpath("./testWrites/moldyOutputSetup.tcl")
+        molpath = os.path.realpath("./graphicsOutput/vmdFiles/moldyOutputSetup.tcl")
         command1 = f'"{VMD_PATH}" -e {molpath}'
         commands = [VMD_PATH,"-e",molpath]
         print(command1)
@@ -811,7 +812,7 @@ def outputToVTF(species, beadOutput="beadOutput.txt", springOutput="springOutput
     else:
         print("\n!!! IMPORTANT !!!")
         print("run the following command in VMD console:")
-        print("source %s" % os.path.realpath("./testWrites/moldyOutputSetup.tcl"))            
+        print("source %s" % os.path.realpath("./graphicsOutput/vmdFiles/moldyOutputSetup.tcl"))            
     
 # # EXAMPLE USAGE:
 # # Below is an example set up. A loop is created of positive beads and a negative
@@ -826,26 +827,10 @@ def outputToVTF(species, beadOutput="beadOutput.txt", springOutput="springOutput
 
 # beads = beads + [negBead]
 
-setSimulationParameters(1e-6,1e-10,1e-3,300,1e-10)
+tStep = 1e-10
+tMax = 1e-6
 
-# initialiseObjects(beads,springs)
-
-# nChains = 3
-# chainLength = 2
-# beads = []
-# springs = []
-# spread = 1e-8
-# for i in range(0,nChains):
-#     beadPosition = [np.random.uniform(-spread,+spread),
-#                     np.random.uniform(-spread,+spread),
-#                     np.random.uniform(-spread,+spread)]
-#     bead, spring = createHomoChain(chainLength,position=beadPosition,mass=1e-12,radius=1e-9,
-#                            natLength=(2.0**(1/6))*2e-9,springConst=1e-5,chainStartInd=chainLength*i,
-#                            randWalk=False)
-#     beads = beads + bead
-#     springs = springs + spring
-
-# initialiseObjects(beads,springs)
+setSimulationParameters(tMax,tStep,1e-3,300,1e-10)
 
 #Sle 
 beads = []
@@ -872,19 +857,31 @@ for i in range(0,7):
 
     
 
-# beads2, springs2 = createHomoChain(7,position=[0,6e-9,0],mass=1e-18,radius=1e-9,natLength=springLength,
-#                                  springConst=1e-3,species=3,chainStartInd=7)
-# beads2, springs2 = createHomoChain(7,position=[0,6e-9,0],mass=1e-18,radius=1e-9,natLength=springLength,
-#                                  springConst=1e-1   ,species=3,chainStartInd=0,randWalk=False)
+beads2, springs2 = createHomoChain(7,position=[0,6e-9,0],mass=1e-18,radius=1e-9,natLength=springLength,
+                                 springConst=1e-3,species=3,chainStartInd=7)
+beads2, springs2 = createHomoChain(7,position=[0,6e-9,0],mass=1e-18,radius=1e-9,natLength=springLength,
+                                 springConst=1e-1   ,species=3,chainStartInd=0,randWalk=False)
 
 beadSolo = createBead(position=[0,6e-9,6e-9],mass=1e-18,radius=1e-9,species=3)
 
-#initialiseObjects(beads+beads2,springs+springs2)
-initialiseObjects(beads,springs)
+initialiseObjects(beads+beads2,springs+springs2)
+#initialiseObjects(beads,springs)
 #initialiseObjects(beads2,springs2)
+speciesList = ["Sle_w", "Sle_s", "spacer","RNA"]
+
+script1 = createBlankScript(tStep,tMax)
+script1 = addEvent(script1, [1e-7,tStep,tMax],  "add", 1, "rnaBeads.txt", "rnaSprings.txt")
+script1 = addEvent(script1, [2e-7,tStep,tMax], "add", 1, "sleBeads.txt", "sleSprings.txt")
+script1 = addEvent(script1, [3e-7,tStep,tMax], "add", 1, "rnaBeads.txt", "rnaSprings.txt")
+script1 = addEvent(script1, [4e-7,tStep,tMax], "add", 1, "sleBeads.txt", "sleSprings.txt")
+script1 = addEvent(script1, [5e-7,tStep,tMax], "add", 1, "rnaBeads.txt", "rnaSprings.txt")
+script1 = addEvent(script1, [6e-7,tStep,tMax], "add", 1, "sleBeads.txt", "sleSprings.txt")
+setSimulationScript(script1)
+
+
 runSimulation()
-imageArray = renderBeads(noFrames=100)
-imagesToVideo(imageArray)   
+outputToVTF(speciesList, noFrames=500, launchVMD=True)
+
 
 
 

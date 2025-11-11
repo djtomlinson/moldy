@@ -997,7 +997,7 @@
 9.960000e-08 none 0 none none
 9.970000e-08 none 0 none none
 9.980000e-08 none 0 none none
-9.990000e-08 none 0 none none
+1.000000e-07 add 1 rnaBeads.txt rnaSprings.txt
 1.000000e-07 none 0 none none
 1.001000e-07 none 0 none none
 1.002000e-07 none 0 none none
@@ -2997,7 +2997,7 @@
 2.996000e-07 none 0 none none
 2.997000e-07 none 0 none none
 2.998000e-07 none 0 none none
-2.999000e-07 none 0 none none
+3.000000e-07 add 1 rnaBeads.txt rnaSprings.txt
 3.000000e-07 none 0 none none
 3.001000e-07 none 0 none none
 3.002000e-07 none 0 none none
@@ -4998,7 +4998,7 @@
 4.997000e-07 none 0 none none
 4.998000e-07 none 0 none none
 4.999000e-07 none 0 none none
-5.000000e-07 none 0 none none
+5.000000e-07 add 1 rnaBeads.txt rnaSprings.txt
 5.001000e-07 none 0 none none
 5.002000e-07 none 0 none none
 5.003000e-07 none 0 none none
